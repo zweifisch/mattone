@@ -4,7 +4,9 @@
   "description": "parser conbinator for javascript",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha --compilers js:babel/register test.js"
+    "test": "./node_modules/mocha/bin/mocha --compilers js:babel/register src/test.js",
+    "build": "./node_modules/babel/bin/babel.js -d lib src",
+    "prepublish": "npm run build"
   },
   "keywords": [
     "parser",
