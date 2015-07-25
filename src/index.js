@@ -1,5 +1,5 @@
 
-import {somep, whilep, map, fst, repeat, iteratep, tee, reducep} from "./utils";
+import {somep, whilep, fst, repeat, iteratep, tee, reducep, map as _map} from "./utils";
 
 
 export function str(str) {
@@ -8,7 +8,7 @@ export function str(str) {
             if (str === input.substr(start, str.length))
                 resolve([str, str.length + start]);
             else
-                reject(`<str ${str}> failed at ${start}`);
+                reject(Error(`<str "${str}"> failed at ${start}`));
         });
     };
 }
@@ -21,14 +21,14 @@ export function re(pattern) {
             if (result)
                 resolve([result[0], result[0].length + start]);
             else
-                reject(`<re ${pattern.source}> failed at ${start}`);
+                reject(Error(`<re "${pattern.source}"> failed at ${start}`));
         });
     };
 }
 
 export function or(...parsers) {
     return (input, start) => {
-        return somep(map(x=> x(input, start), parsers));
+        return somep(_map(x=> x(input, start), parsers));
     };
 }
 
@@ -39,7 +39,7 @@ export function seq(...parsers) {
                     if (!skiped) results.push(result);
                     return [results, pos];
                 });
-        return reducep(map(wrap, parsers), [[], start]);
+        return reducep(_map(wrap, parsers), [[], start]);
     };
 }
 
@@ -60,13 +60,34 @@ export function many(parser) {
     };
 }
 
+export function sep(sepParser, parser) {
+    return map(seq(many(seq(parser, sepParser)), parser), ([items, last])=> [].concat.apply([], items.concat([last])));
+}
+
 export function maybe(parser) {
     return (input, pos)=> parser(input, pos).catch(x => [null, pos]);
 }
 
+export function decl() {
+    let parser;
+    return (input, start=null)=> {
+        if (start === null) {
+            // define
+            return parser = input;
+        } else {
+            if (parser)
+                return parser(input, start);
+            else
+                throw Error("parser not defined yet");
+        }
+    };
+}
+
+export const map = (parser, f) => (...args) => parser(...args).then(([r,p,s])=> [f(r),p,s]);
+
 export function done(input, start) {
     return new Promise((resolve, reject)=> {
-        input.length === start ? resolve([null, 0]) : reject(`EOF expected at ${start}`);
+        input.length === start ? resolve([null, 0]) : reject(Error(`EOF expected at ${start}`));
     });
 }
 

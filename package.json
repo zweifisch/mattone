@@ -1,7 +1,7 @@
 {
   "name": "mattone",
   "version": "0.0.1",
-  "description": "parser conbinator for javascript",
+  "description": "promise based parser conbinator for javascript",
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha --compilers js:babel/register src/test.js",
