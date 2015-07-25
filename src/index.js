@@ -2,16 +2,18 @@
 import {somep, whilep, fst, repeat, iteratep, tee, reducep, map as _map} from "./utils";
 
 
-export function str(str) {
+export function char(c) {
     return (input, start) => {
         return new Promise((resolve, reject) => {
-            if (str === input.substr(start, str.length))
-                resolve([str, str.length + start]);
+            if (input.charAt(start) === c) {
+                resolve([c, start + 1]); }
             else
-                reject(Error(`<str "${str}"> failed at ${start}`));
+                reject(Error(`<char "${c}"> failed at ${start}`));
         });
     };
 }
+
+export const str = (str) => map(seq(...str.split('').map(char)), chars => chars.join(''));
 
 export function re(pattern) {
     pattern = new RegExp("^" + pattern.source);

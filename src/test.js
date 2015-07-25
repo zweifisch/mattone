@@ -2,7 +2,7 @@
 import chai from 'chai';
 import promised from "chai-as-promised";
 import {str, re, skip, finished, many, seq, maybe, run, or, done, decl, sep, map} from ".";
-import {repeat, next} from "./utils";
+import {repeat, next, map as _map} from "./utils";
 
 chai.use(promised);
 chai.should();
@@ -13,6 +13,17 @@ describe("utils", _ => {
             let yes = repeat(true);
             next(yes).should.equal(true);
             next(yes).should.equal(true);
+            done();
+        });
+    });
+
+    describe("map", _ => {
+        it("string", done => {
+            let collected = [];
+            for (let c of _map(x => x, "str")) {
+                collected.push(c);
+            }
+            collected.should.deep.equal(["s", "t", "r"]);
             done();
         });
     });
