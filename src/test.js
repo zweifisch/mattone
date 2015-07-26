@@ -1,30 +1,28 @@
 
 import chai from 'chai';
 import promised from "chai-as-promised";
-import {str, re, skip, finished, many, seq, maybe, run, or, done, decl, sep, map} from ".";
-import {repeat, next, map as _map} from "./utils";
+import {str, re, skip, finished, many, seq, maybe, run, or, done, decl, sep, map, alphaNum, lower, repeat} from ".";
+import {repeat as _repeat, next, map as _map} from "./utils";
 
 chai.use(promised);
 chai.should();
 
 describe("utils", _ => {
     describe("repeat", _ => {
-        it("repeat", done => {
-            let yes = repeat(true);
+        it("repeat", () => {
+            let yes = _repeat(true);
             next(yes).should.equal(true);
             next(yes).should.equal(true);
-            done();
         });
     });
 
     describe("map", _ => {
-        it("string", done => {
+        it("string", () => {
             let collected = [];
             for (let c of _map(x => x, "str")) {
                 collected.push(c);
             }
             collected.should.deep.equal(["s", "t", "r"]);
-            done();
         });
     });
 });
@@ -49,6 +47,13 @@ describe("parser", _ => {
                 str('{'),
                 str("a"),
                 str('}')), '{a}').should.eventually.deep.equal(["{", "a", "}"]).notify(done);
+        });
+        it("generator", done => {
+            run(seq((function*() {
+                yield str('{');
+                yield str("a");
+                yield str('}');
+            })()) , '{a}').should.eventually.deep.equal(["{", "a", "}"]).notify(done);
         });
     });
 
@@ -126,6 +131,20 @@ describe("parser", _ => {
                 sep(comma, map(seq(ws, num, ws), fst)), 
                 skip(str("]"))), fst), "[ 1, 2 ,3,4]")
                 .should.eventually.deep.equal([1, 2, 3, 4]).notify(done);
+        });
+    });
+
+    describe("alphaNumeric", _ => {
+        it("should", done => {
+            run(lower, "abc").should.eventually.equal('a');
+            run(alphaNum, "abc ").should.eventually.equal('a').notify(done);
+        });
+    });
+
+    describe("repeat", _ => {
+        it("should", done => {
+            run(map(repeat(3, lower), "abcd"),
+                xs => xs.join('')).should.eventually.equal('abc').notify(done);
         });
     });
 });

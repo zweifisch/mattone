@@ -71,4 +71,13 @@ export function tee(f) {
     };
 }
 
-export var fst = ([x, _]) => x;
+export const fst = ([x, _]) => x;
+
+export function* take(n, iterable) {
+    for (let i of iterable) {
+        if (n-- > 0)
+            yield i;
+        else
+            return;
+    }
+}

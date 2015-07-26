@@ -1,5 +1,5 @@
 
-import {somep, whilep, fst, repeat, iteratep, tee, reducep, map as _map} from "./utils";
+import {somep, whilep, fst, iteratep, tee, reducep, map as _map, repeat as _repeat, i2a, take} from "./utils";
 
 
 export function char(c) {
@@ -36,12 +36,14 @@ export function or(...parsers) {
 
 export function seq(...parsers) {
     return (input, start) => {
-        let wrap = parser => ([results, pos]) =>
-                parser(input, pos).then(([result, pos, skiped]) => {
+        let wrap = parser => ([results, pos]) => {
+                if ("function" !== typeof parser) throw Error(`invalid parser at ${pos}`);
+                return parser(input, pos).then(([result, pos, skiped]) => {
                     if (!skiped) results.push(result);
                     return [results, pos];
                 });
-        return reducep(_map(wrap, parsers), [[], start]);
+        };
+        return reducep(_map(wrap, "function" === typeof parsers[0] ? parsers : parsers[0]), [[], start]);
     };
 }
 
@@ -61,6 +63,10 @@ export function many(parser) {
         }, [[], start]);
     };
 }
+
+export const oneplus = (parser)=> seq(parser, many(parser));
+
+export const repeat = (n, parser)=> seq(...take(n, _repeat(parser)));
 
 export function sep(sepParser, parser) {
     return map(seq(many(seq(parser, sepParser)), parser), ([items, last])=> [].concat.apply([], items.concat([last])));
@@ -96,3 +102,10 @@ export function done(input, start) {
 export function run(parser, input) {
     return parser(input, 0).then(fst);
 }
+
+
+export const lower = or(..."abcdefghijklmnopqrstuvwxyz".split("").map(char));
+export const upper = or(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(char));
+export const digit = or(..."0123456789".split("").map(char));
+export const letter = or(lower, upper);
+export const alphaNum = or(lower, upper, digit);
