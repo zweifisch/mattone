@@ -1,7 +1,7 @@
 
 import chai from 'chai';
 import promised from "chai-as-promised";
-import {str, re, skip, finished, many, seq, maybe, run, or, done, decl, sep, map, alphaNum, lower, repeat} from ".";
+import {char, str, re, skip, finished, many, seq, maybe, run, or, done, decl, sep, map, alphaNum, lower, repeat} from ".";
 import {repeat as _repeat, next, map as _map} from "./utils";
 
 chai.use(promised);
@@ -29,99 +29,99 @@ describe("utils", _ => {
 
 describe("parser", _ => {
 
-    describe("str", _ => {
-        it("str", done => {
-            run(str("abc"), "abc").should.eventually.equal("abc").notify(done);
-        });
-    });
-
-    describe("or", _ => {
-        it("or", done => {
-            run(or(str('ab'), str('cd')), "cd").should.eventually.equal("cd").notify(done);
-        });
+    describe("char", _ => {
+        it("char", () =>
+           run(char("a"), "a").should.eventually.equal("a"));
     });
 
     describe("seq", _ => {
-        it("seq", done => {
+        it("seq", () =>
             run(seq(
-                str('{'),
-                str("a"),
-                str('}')), '{a}').should.eventually.deep.equal(["{", "a", "}"]).notify(done);
-        });
-        it("generator", done => {
+                char('{'),
+                char("a"),
+                str('}')), '{a}').should.eventually.deep.equal(["{", "a", "}"]));
+        it("generator", () =>
             run(seq((function*() {
                 yield str('{');
                 yield str("a");
                 yield str('}');
-            })()) , '{a}').should.eventually.deep.equal(["{", "a", "}"]).notify(done);
-        });
+            })()) , '{a}').should.eventually.deep.equal(["{", "a", "}"]));
+    });
+
+    describe("str", _ => {
+        it("str", () =>
+           run(str("abc"), "abc").should.eventually.equal("abc"));
+    });
+
+    describe("or", _ => {
+        it("or", () =>
+           run(or(char('a'), char('b')), "ba").should.eventually.equal("b"));
     });
 
     describe("skip", _ => {
-        it("skip", done => {
+        it("skip", () =>
             run(seq(
                 skip(str('{')),
                 str("a"),
-                skip(str('}'))), '{a}').should.eventually.deep.equal(["a"]).notify(done);
-        });
+                skip(str('}'))), '{a}').should.eventually.deep.equal(["a"]));
     });
 
     describe("regexp", _ => {
-        it("regexp", done => {
+        it("regexp", () => {
             let num = re(/\d+/);
             run(num, "22.3").should.eventually.equal("22");
-            run(seq(num, str("."), num), "22.3").should.eventually.deep.equal(["22", ".", "3"]).notify(done);
+            run(seq(num, str("."), num), "22.3").should.eventually.deep.equal(["22", ".", "3"]);
         });
     });
 
     describe("many", _ => {
-        it("many", done => {
-            run(many(str("ab")), "ababab").should.eventually.deep.equal(["ab", "ab", "ab"]).notify(done);
-        });
-        it("many", done => {
+        it("many", () =>
+           run(many(str("ab")), "ababab").should.eventually.deep.equal(["ab", "ab", "ab"]));
+        it("many", () => {
             let num = re(/\d+/);
             let array = seq(skip(str("[")),
                         many(seq(num, skip(str(",")))),
                         num,
                         skip(str("]")));
-            run(array, "[1,2,3]").should.eventually.deep.equal([[["1"], ["2"]], "3"]).notify(done);
+            run(array, "[1,2,3]").should.eventually.deep.equal([[["1"], ["2"]], "3"]);
         });
     });
 
     describe("maybe", _ => {
-        it("should null", done => {
-            let num = seq(maybe(str("-")), re(/\d+/));
-            run(num, "-2").should.eventually.deep.equal(["-", "2"]);
-            run(num, "2").should.eventually.deep.equal([null, "2"]).notify(done);
-        });
+        let num = seq(maybe(str("-")), re(/\d+/));
+        it("should null", () =>
+           run(num, "-2").should.eventually.deep.equal(["-", "2"]));
+        it("should null", () =>
+           run(num, "2").should.eventually.deep.equal([null, "2"]));
     });
 
     describe("map", _ => {
-        it("should", done => {
+        it("should", () => {
             let num = map(seq(maybe(str("-")), re(/\d+/)), ([s, n])=> s? -parseInt(n): parseInt(n));
             let ws = maybe(many(str(" ")));
             let comma = skip(seq(ws, str(","), ws));
-            run(seq(num, many(seq(comma, num))), "1 ,-1, 0").should.eventually.deep.equal([1, [[-1], [0]]]).notify(done);
+            run(seq(num, many(seq(comma, num))), "1 ,-1, 0").should.eventually.deep.equal([1, [[-1], [0]]]);
         });
     });
 
     describe("done", _ => {
-        it("should done", _done => {
-            run(seq(str("ab"), done), "ab").should.eventually.deep.equal(["ab", null]).notify(_done);
-        });
+        it("should done", () =>
+           run(seq(str("ab"), done), "ab").should.eventually.deep.equal(["ab", null]));
     });
 
     describe("decl", _ => {
-        it("should decl", done => {
-            let braces = decl();
-            braces(seq(str("{"), maybe(braces), str("}")));
-            run(braces, "{}").should.eventually.deep.equal(["{", null, "}"]);
-            run(braces, "{{}}").should.eventually.deep.equal(["{", ["{", null, "}"], "}"]).notify(done);
-        });
+
+        let braces = decl();
+        braces.define(seq(str("{"), maybe(braces), str("}")));
+
+        it("should decl", () =>
+           run(braces, "{}").should.eventually.deep.equal(["{", null, "}"]));
+        it("should decl", () =>
+           run(braces, "{{}}").should.eventually.deep.equal(["{", ["{", null, "}"], "}"]));
     });
 
     describe("sep", _ => {
-        it("should sep", done => {
+        it("should sep", () => {
             let ws = skip(maybe(many(str(" "))));
             let comma = skip(str(","));
             let num = map(re(/\d+/), parseInt);
@@ -130,21 +130,27 @@ describe("parser", _ => {
                 skip(str("[")),
                 sep(comma, map(seq(ws, num, ws), fst)), 
                 skip(str("]"))), fst), "[ 1, 2 ,3,4]")
-                .should.eventually.deep.equal([1, 2, 3, 4]).notify(done);
+                .should.eventually.deep.equal([1, 2, 3, 4]);
+        });
+        it("should sep", () => {
+            let comma = skip(str(","));
+            let num = map(re(/\d+/), parseInt);
+            run(sep(comma, num), "1")
+                .should.eventually.deep.equal([1, 2, 3, 4]);
         });
     });
 
     describe("alphaNumeric", _ => {
-        it("should", done => {
-            run(lower, "abc").should.eventually.equal('a');
-            run(alphaNum, "abc ").should.eventually.equal('a').notify(done);
-        });
+        it("should", () =>
+            run(lower, "abc").should.eventually.equal('a'));
+        it("should", () =>
+            run(alphaNum, "abc ").should.eventually.equal('a'));
     });
 
     describe("repeat", _ => {
-        it("should", done => {
-            run(map(repeat(3, lower), "abcd"),
-                xs => xs.join('')).should.eventually.equal('abc').notify(done);
-        });
+        it("should", () =>
+            run(map(repeat(3, lower),
+                    xs => xs.join(''))
+                ,"abcd").should.eventually.equal('abc'));
     });
 });

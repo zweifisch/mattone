@@ -1,5 +1,9 @@
 
+import {ParserError} from "./error";
+
 export function* map(f, xs) {
+    if (!xs[Symbol.iterator])
+        throw new Error(`${xs} not iterable`);
     for (let x of xs) {
         yield f(x);
     }
@@ -19,12 +23,17 @@ export var next = (xs)=> xs.next().value;
 
 export function somep(ps) {
     return new Promise((resolve, reject)=> {
-        let nextP = _ => {
+        let nextP = () => {
             let p = next(ps);
             if (p)
-                p.then(resolve, nextP);
+                p.then(resolve).catch(err => {
+                    if (err instanceof ParserError)
+                        nextP();
+                    else
+                        reject(err);
+                });
             else
-                reject();
+                reject(new ParserError("all promise failed"));
         };
         nextP();
     });
@@ -59,7 +68,12 @@ export function reducep(fs, initial) {
 
 export function iteratep(f, arg) {
     return new Promise((resolve, reject)=> {
-        let iter = x => f(x).then(iter).catch(_ => resolve(x));
+        let iter = x => f(x).then(iter).catch(err => {
+            if (err instanceof ParserError)
+                resolve(x);
+            else
+                reject(err);
+        });
         iter(arg);
     });
 }
@@ -74,6 +88,8 @@ export function tee(f) {
 export const fst = ([x, _]) => x;
 
 export function* take(n, iterable) {
+    if (!iterable[Symbol.iterator])
+        throw new Error(`${iterable} not iterable`);
     for (let i of iterable) {
         if (n-- > 0)
             yield i;
