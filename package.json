@@ -16,6 +16,7 @@
   "license": "MIT",
   "devDependencies": {
     "babel": "^5.8.20",
+    "chai": "^3.2.0",
     "chai-as-promised": "^5.1.0",
     "mocha": "^2.2.5"
   },

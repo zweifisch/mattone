@@ -45,11 +45,11 @@ export function or(...parsers) {
     return {
         parse: (input, start) => somep(_map(x=> x.parse(input, start), parsers)).catch(err => {
             if (err instanceof ParserError)
-                throw new ParserError(`${err.message} all failed in \n<or ${parsers.join(",\n")}>`);
+                throw new ParserError(`${err.message} in #<or>`);
             else
-                throw new Error(`${err.message} in \n<or ${parsers.join(",\n")}>`);
+                throw err;
         }),
-        toString: () => `<or ${parsers.join(",\n")}>`
+        toString: () => `#<or>`
     };
 }
 
@@ -65,7 +65,7 @@ export function seq(...parsers) {
                     return [results, pos];
                 }).catch(err => {
                     if (err instanceof ParserError)
-                        throw new ParserError(`${err.message} in \n seq`);
+                        throw new ParserError(`${err.message} in #<seq>`);
                     else
                         throw err;
                 });
@@ -73,16 +73,17 @@ export function seq(...parsers) {
             if (!parsers[0])
                 throw new ParserError(`need at leaset one parser`);
             let _parsers = 'function' === typeof parsers[0][Symbol.iterator] ? parsers[0] : parsers;
-            return reducep(_map(wrap, _parsers), [[], start]);
+            return reducep(_map(wrap, _parsers), [[], start])
+                .then(([results, pos])=> [results.length === 1 ? results[0]: results, pos]);
         },
-        toString: () => `<seq ${parsers.join(",\n")}>`
+        toString: () => `#<seq>`
     };
 }
 
 export function skip(parser) {
     return {
         parse: (input, start)=> parser.parse(input, start).then(([_, pos])=> [null, pos, true]),
-        toString: () => `<skip ${parser}>`
+        toString: () => `#<skip ${parser}>`
     };
 }
 
@@ -96,23 +97,24 @@ export function many(parser) {
                 });
             }, [[], start]);
         },
-        toString: () => `<many ${parser}>`
+        toString: () => `#<many ${parser}>`
     };
 }
 
-export const oneplus = (parser)=> seq(parser, many(parser));
+export const oneplus = (parser)=> map(seq(parser, many(parser)),
+                                      ([x, xs])=> [x].concat(xs));
 
 export function repeat(n, parser) {
     return {
         parse: seq(...take(n, _repeat(parser))).parse,
-        toString: () => `<repeat ${n} ${parser}>`
+        toString: () => `#<repeat ${n} ${parser}>`
     };
 };
 
 export function sep(sepParser, parser) {
     return {
         parse: map(seq(many(seq(parser, sepParser)), parser),
-                   ([items, last])=> [].concat.apply([], items.concat([last]))).parse,
+                   ([items, last])=> items.concat([last])).parse,
         toString: () => `<sep ${sepParser} ${parser}>`
     };
 }
@@ -206,3 +208,19 @@ export const alphaNum = {
     parse: or(lower, upper, digit).parse,
     toString: () => "alphaNum"
 };
+
+export function anno (annotation, parser) {
+    return {
+        parse (...args) {
+            return parser.parse(...args)
+                .then(([result, pos, skiped])=> [[annotation, result], pos, skiped])
+                .catch(err=> {
+                    let msg = `${err.message} in\n${parser}(${annotation})`;
+                    if (err instanceof ParserError)
+                        throw new ParserError(msg);
+                    throw new Error(msg);
+                });
+        },
+        toString: () => `${parser}(${annotation})`
+    };
+}

@@ -7,7 +7,10 @@ require("babel/polyfill");
 mattone = require("mattone");
 ```
 
+## projects using mattone
+
+* [yaddle](https://github.com/zweifisch/yaddle)
+
 ## development
 
 - npm test
-- npm run build
