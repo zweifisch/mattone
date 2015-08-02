@@ -67,24 +67,23 @@ describe("parser", _ => {
     });
 
     describe("regexp", _ => {
-        it("regexp", () => {
-            let num = re(/\d+/);
-            run(num, "22.3").should.eventually.equal("22");
-            run(seq(num, str("."), num), "22.3").should.eventually.deep.equal(["22", ".", "3"]);
-        });
+        let num = re(/\d+/);
+        it("regexp", () =>
+           run(seq(num, str("."), num), "22.3").should.eventually.deep.equal(["22", ".", "3"]));
+        it("regexp", () =>
+           run(num, "22.3").should.eventually.equal("22"));
     });
 
     describe("many", _ => {
-        it("many", () =>
-           run(many(str("ab")), "ababab").should.eventually.deep.equal(["ab", "ab", "ab"]));
-        it("many", () => {
-            let num = re(/\d+/);
-            let array = seq(skip(str("[")),
+        let num = re(/\d+/);
+        let array = seq(skip(str("[")),
                         many(seq(num, skip(str(",")))),
                         num,
                         skip(str("]")));
-            run(array, "[1,2,3]").should.eventually.deep.equal([[["1"], ["2"]], "3"]);
-        });
+        it("many", () =>
+           run(many(str("ab")), "ababab").should.eventually.deep.equal(["ab", "ab", "ab"]));
+        it("many", () =>
+           run(array, "[1,2,3]").should.eventually.deep.equal([[["1"], ["2"]], "3"]));
     });
 
     describe("maybe", _ => {
@@ -100,8 +99,14 @@ describe("parser", _ => {
             let num = map(seq(maybe(str("-")), re(/\d+/)), ([s, n])=> s? -parseInt(n): parseInt(n));
             let ws = maybe(many(str(" ")));
             let comma = skip(seq(ws, str(","), ws));
-            run(seq(num, many(seq(comma, num))), "1 ,-1, 0").should.eventually.deep.equal([1, [[-1], [0]]]);
+            return run(seq(num, many(seq(comma, num))), "1 ,-1, 0").should.eventually.deep.equal([1, [[-1], [0]]]);
         });
+        let incr = (amount)=> (x)=> x + amount;
+        let num = map(re(/\d+/), parseInt, incr(2), incr(1));
+        it("should map mutiple times", () =>
+           run(num, "2").should.eventually.equal(5));
+        it("should map mutiple times", () =>
+           run(num, "0").should.eventually.equal(3));
     });
 
     describe("done", _ => {
@@ -126,29 +131,31 @@ describe("parser", _ => {
             let comma = skip(str(","));
             let num = map(re(/\d+/), parseInt);
             let fst = ([x])=> x;
-            run(map(seq(
+            return run(map(seq(
                 skip(str("[")),
                 sep(comma, map(seq(ws, num, ws), fst)), 
                 skip(str("]"))), fst), "[ 1, 2 ,3,4]")
                 .should.eventually.deep.equal([1, 2, 3, 4]);
         });
-        it("should sep", () => {
+        it("should handle single item", () => {
             let comma = skip(str(","));
             let num = map(re(/\d+/), parseInt);
-            run(sep(comma, num), "1")
-                .should.eventually.deep.equal([1, 2, 3, 4]);
+            return run(sep(comma, num), "1")
+                .should.eventually.deep.equal([1]);
         });
     });
 
     describe("alphaNumeric", _ => {
-        it("should", () =>
+        it("should parse lower", () =>
             run(lower, "abc").should.eventually.equal('a'));
-        it("should", () =>
+        it("should parse letter", () =>
             run(alphaNum, "abc ").should.eventually.equal('a'));
+        it("should parse number", () =>
+            run(alphaNum, "1").should.eventually.equal('1'));
     });
 
     describe("repeat", _ => {
-        it("should", () =>
+        it("should repeat", () =>
             run(map(repeat(3, lower),
                     xs => xs.join(''))
                 ,"abcd").should.eventually.equal('abc'));

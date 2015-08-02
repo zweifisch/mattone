@@ -65,7 +65,7 @@ export function seq(...parsers) {
                     return [results, pos];
                 }).catch(err => {
                     if (err instanceof ParserError)
-                        throw new ParserError(`${err.message} in\n seq`);
+                        throw new ParserError(`${err.message} in \n seq`);
                     else
                         throw err;
                 });
@@ -129,6 +129,24 @@ export function maybe(parser) {
     };
 }
 
+export function some(predict) {
+    return {
+        parse (input, pos) {
+            return new Promise((resolve, reject)=>{
+                if (pos >= input.length)
+                    reject(new ParserError(`EOF`));
+                else if (predict(input[pos]))
+                    resolve([input[pos], 1 + pos]);
+                else
+                    reject(new ParserError(`failed at ${pos}`));
+            });
+        },
+        toString () {
+            return `<some>`;
+        }
+    };
+}
+
 export function decl() {
     let parser;
     return {
@@ -143,12 +161,17 @@ export function decl() {
     };
 }
 
-export function map(parser, f) {
+export function map(parser, f, ...fns) {
     return {
-        parse: (...args) => parser.parse(...args).then(([r,p,s])=> [f(r),p,s]),
+        parse: (...args) => parser.parse(...args).then(([r,p,s])=> {
+            let result = f(r);
+            for (let f of fns)
+                result = f(result);
+            return [result, p, s];
+        }),
         toString: () => `<map ${parser}>`
     };
-};
+}
 
 export const done = {
     parse (input, start) {
